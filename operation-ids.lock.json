@@ -1,0 +1,14 @@
+{
+  "typespec": {
+    "GET /tasks": "Tasks_listTasks",
+    "POST /tasks": "Tasks_createTask",
+    "GET /tasks/{id}": "Tasks_getTask",
+    "DELETE /tasks/{id}": "Tasks_deleteTask"
+  },
+  "aspnet": {
+    "GET /tasks": "GET_tasks",
+    "POST /tasks": "CreateTask",
+    "GET /tasks/{id}": "GetTask",
+    "DELETE /tasks/{id}": "DeleteTask"
+  }
+}

@@ -1,0 +1,141 @@
+openapi: 3.0.0
+info:
+  title: Task API
+  version: 0.0.0
+tags:
+  - name: Tasks
+paths:
+  /tasks:
+    get:
+      operationId: Tasks_listTasks
+      description: List tasks, optionally filtered by status
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskItem'
+      tags:
+        - Tasks
+    post:
+      operationId: Tasks_createTask
+      parameters:
+        - name: X-Client
+          in: header
+          required: false
+          description: Identifies the calling client.
+          schema:
+            type: string
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          headers:
+            location:
+              required: true
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskItem'
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTask'
+  /tasks/{id}:
+    get:
+      operationId: Tasks_getTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskItem'
+        '404':
+          description: The server cannot find the requested resource.
+      tags:
+        - Tasks
+    delete:
+      operationId: Tasks_deleteTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '204':
+          description: There is no content to send for this request, but the headers may be useful.
+        '404':
+          description: The server cannot find the requested resource.
+      tags:
+        - Tasks
+components:
+  schemas:
+    CreateTask:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        dueDate:
+          type: string
+          format: date
+      description: Payload for creating a task.
+    TaskItem:
+      type: object
+      required:
+        - id
+        - title
+        - status
+      properties:
+        id:
+          type: integer
+          format: int32
+        title:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        dueDate:
+          type: string
+          format: date
+        createdBy:
+          type: string
+          description: Name of the client that created the task (from the X-Client header).
+      description: A task.
+    TaskStatus:
+      type: string
+      enum:
+        - Todo
+        - InProgress
+        - Done
+servers:
+  - url: http://localhost:5000
+    description: Local
+    variables: {}

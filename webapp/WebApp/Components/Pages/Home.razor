@@ -1,0 +1,141 @@
+@page "/"
+@inject WebApp.Clients.TypeSpec.TypeSpecClient TypeSpecClient
+@inject WebApp.Clients.AspNet.AspNetClient AspNetClient
+
+<PageTitle>Task API · Kiota clients</PageTitle>
+
+<header class="app-header">
+    <div class="inner">
+        <h1>Task API</h1>
+        <p>The same API consumed through two Kiota clients, each generated from a different OpenAPI document.</p>
+    </div>
+</header>
+
+<main>
+    @if (error is not null)
+    {
+        <div class="alert" role="alert">@error</div>
+    }
+
+    <div class="grid">
+        <section class="card" aria-labelledby="ts-title">
+            <div class="card-head">
+                <h2 id="ts-title">TypeSpec client</h2>
+                <div class="meta">
+                    <span class="chip">typespec/openapi.yaml</span>
+                    <span class="chip">WebApp.Clients.TypeSpec</span>
+                </div>
+            </div>
+            <form class="add" @onsubmit="AddTypeSpec">
+                <input type="text" @bind="typeSpecTitle" @bind:event="oninput" placeholder="Add a task…" aria-label="New task title (TypeSpec client)" />
+                <button class="primary" type="submit" disabled="@string.IsNullOrWhiteSpace(typeSpecTitle)">Add</button>
+            </form>
+            @if (typeSpecTasks.Count == 0)
+            {
+                <p class="empty">No tasks yet.</p>
+            }
+            else
+            {
+                <ul class="tasks">
+                    @foreach (var t in typeSpecTasks)
+                    {
+                        <li>
+                            <span class="id">#@t.Id</span>
+                            <span class="title">
+                                @t.Title
+                                @if (t.CreatedBy is not null)
+                                {
+                                    <span class="by">added by @t.CreatedBy</span>
+                                }
+                            </span>
+                            <span class="badge @StatusClass(t.Status?.ToString())">@StatusLabel(t.Status?.ToString())</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="card" aria-labelledby="asp-title">
+            <div class="card-head">
+                <h2 id="asp-title">ASP.NET client</h2>
+                <div class="meta">
+                    <span class="chip">aspnet/TaskApi/TaskApi.json</span>
+                    <span class="chip">WebApp.Clients.AspNet</span>
+                </div>
+            </div>
+            <form class="add" @onsubmit="AddAspNet">
+                <input type="text" @bind="aspNetTitle" @bind:event="oninput" placeholder="Add a task…" aria-label="New task title (ASP.NET client)" />
+                <button class="primary" type="submit" disabled="@string.IsNullOrWhiteSpace(aspNetTitle)">Add</button>
+            </form>
+            @if (aspNetTasks.Count == 0)
+            {
+                <p class="empty">No tasks yet.</p>
+            }
+            else
+            {
+                <ul class="tasks">
+                    @foreach (var t in aspNetTasks)
+                    {
+                        <li>
+                            <span class="id">#@t.Id</span>
+                            <span class="title">
+                                @t.Title
+                                @if (t.CreatedBy is not null)
+                                {
+                                    <span class="by">added by @t.CreatedBy</span>
+                                }
+                            </span>
+                            <span class="badge @StatusClass(t.Status?.ToString())">@StatusLabel(t.Status?.ToString())</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+</main>
+
+@code {
+    List<WebApp.Clients.TypeSpec.Models.TaskItem> typeSpecTasks = [];
+    List<WebApp.Clients.AspNet.Models.TaskItem> aspNetTasks = [];
+    string typeSpecTitle = "", aspNetTitle = "";
+    string? error;
+
+    static string StatusClass(string? s) => (s ?? "todo").ToLowerInvariant();
+    static string StatusLabel(string? s) => s switch
+    {
+        "InProgress" => "In progress",
+        null => "Todo",
+        _ => s,
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    async Task LoadAsync()
+    {
+        try
+        {
+            typeSpecTasks = await TypeSpecClient.Tasks.GetAsync() ?? [];
+            aspNetTasks = await AspNetClient.Tasks.GetAsync() ?? [];
+            error = null;
+        }
+        catch (Exception e) { error = $"Could not reach the Task API: {e.Message}"; }
+    }
+
+    async Task AddTypeSpec()
+    {
+        if (string.IsNullOrWhiteSpace(typeSpecTitle)) return;
+        await TypeSpecClient.Tasks.PostAsync(new() { Title = typeSpecTitle.Trim() },
+            r => r.Headers.Add("X-Client", "TypeSpec client"));
+        typeSpecTitle = "";
+        await LoadAsync();
+    }
+
+    async Task AddAspNet()
+    {
+        if (string.IsNullOrWhiteSpace(aspNetTitle)) return;
+        await AspNetClient.Tasks.PostAsync(new() { Title = aspNetTitle.Trim() },
+            r => r.Headers.Add("X-Client", "ASP.NET client"));
+        aspNetTitle = "";
+        await LoadAsync();
+    }
+}
